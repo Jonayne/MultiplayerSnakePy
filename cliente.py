@@ -21,8 +21,6 @@ class Cliente(QtGui.QMainWindow, cliente_gui):
 		self.tableWidget.horizontalHeader().setStretchLastSection(True)
 		self.tableWidget.verticalHeader().setStretchLastSection(True)
 		self.label_3.hide()
-		self.url_server= "http://" + self.lineEdit.text() + ":" + str(self.spinBox_4.value())
-		self.server = ServerProxy(self.url_server)
 		self.pushButton_2.clicked.connect(self.pingea)
 		self.pushButton.clicked.connect(self.participa)
 		self.tableWidget.keyPressEvent= self.keyPressEvent
@@ -30,8 +28,6 @@ class Cliente(QtGui.QMainWindow, cliente_gui):
 		self.ant_coords= None
 		self.primera_vez= False
 		self.timer.timeout.connect(self.actualiza_juego)
-		self.ms= self.server.estado_del_juego()["espera"]
-		self.timer.start(self.ms)
 		self.dire= 2
 		
 	#Método que actualiza el estado de el cliente, acorde al servidor. (Cambia lineas/columnas y dibuja a las víboras)
@@ -110,6 +106,10 @@ class Cliente(QtGui.QMainWindow, cliente_gui):
 	def pingea(self):
 		self.pushButton_2.setText("Pinging...")
 		try:
+			self.url_server= "http://" + self.lineEdit.text() + ":" + str(self.spinBox_4.value())
+			self.server = ServerProxy(self.url_server)
+			self.ms= self.server.estado_del_juego()["espera"]
+			self.timer.start(self.ms)
 			pong= self.server.ping()
 			self.pushButton_2.setText("¡Pong!")
 		except:
