@@ -1,5 +1,6 @@
-#Código para mostrar la interfaz gráfica de nuestro Servidor (y empezar juego de Snake).
-#By Jonayne :0
+#Código para mostrar la interfaz gráfica de nuestro Servidor, poder iniciarlo, entre otras cosas.
+#By Jonayne  \( ͡° ͜ʖ ͡°)/ 
+
 import sys
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.QtCore import *
@@ -27,9 +28,6 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		if self.pushButton_2.text() == "INICIA JUEGO" or self.pushButton_2.text() == "INICIAR OTRA PARTIDA":
 			self.label_9.hide()
 			self.pushButton_2.setText("PAUSAR JUEGO")
-			self.vibora= self.crea_vibora()
-			self.dire= 2
-			self.dibuja_vibora(self.vibora)
 			self.timer= QTimer(self)
 			self.timer.timeout.connect(self.handle)
 			self.timer.start(100)
@@ -48,6 +46,7 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		nueva_vibora= Vibora(identificador, color, coords, 2) #Se mueve para abajo por defecto (por eso el 2).
 		self.lista_viboras.append({"id": identificador, "camino": coords, "color": color})
 		self.viboras_ingame.append(nueva_vibora)
+		self.dibuja_vibora(nueva_vibora)
 
 		return nueva_vibora
 
@@ -88,73 +87,85 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		self.tableWidget.takeItem(vibora.coordenadas[0], vibora.coordenadas[1])
 
 	#Método que acaba el juego, quitando las serpientes y parando el timer.
-	def termina_juego(self, vibora):
-		self.timer.stop()
-		self.borra_vibora(self.vibora)
-		self.pushButton_2.setText("INICIAR OTRA PARTIDA")
-		self.label_9.show()
+	def vibora_ha_perdido(self, vibora):
+		self.borra_vibora(vibora)
+		for x in self.lista_viboras:
+			if vibora.id == x["id"]:
+				self.lista_viboras.remove(x)
+				break
+		self.viboras_ingame.remove(vibora)
 
 	#Método que revisa si la serpiente ya ha chocado con ella misma (i.e, que siga viva)
 	def esta_viva(self, vibora):
-		return not(vibora.coordenadas[0] == vibora.coordenadas[8] and vibora.coordenadas[1] == vibora.coordenadas[9])
+		return not((vibora.coordenadas[0] == vibora.coordenadas[8] and vibora.coordenadas[1] == vibora.coordenadas[9]) or self.ha_chocado(vibora))
 
+	#Método que determina si una víbora ha chocado con alguna otra, i.e, ha perdido.
+	def ha_chocado(self, vibora):
+		cabeza= [vibora.coordenadas[0], vibora.coordenadas[1]]
+		idd= vibora.id
+		for otra_vib in self.lista_viboras:
+			for i in range(9):
+				if idd != otra_vib["id"] and cabeza[0] == otra_vib["camino"][i] and cabeza[1] == otra_vib["camino"][i+1]:
+					return True
+				i+=1
+		return False
 	
 	#Métodos que mueven a la víbora a esa dirección.
 	def mueve_a_izq(self, vibora):
-		self.borra_vibora(self.vibora)
-		self.vibora.actualiza_coords(3, self.tableWidget.columnCount(), self.tableWidget.rowCount())
-		self.vibora.direccion= 3
-		self.vibora.recrea_items()
-		self.dibuja_vibora(self.vibora)
+		self.borra_vibora(vibora)
+		vibora.actualiza_coords(3, self.tableWidget.columnCount(), self.tableWidget.rowCount())
+		self.actualiza_coords_lista_vib()
+		vibora.direccion= 3
+		vibora.recrea_items()
+		self.dibuja_vibora(vibora)
 	def mueve_a_der(self, vibora):
-		self.borra_vibora(self.vibora)
-		self.vibora.actualiza_coords(1, self.tableWidget.columnCount(), self.tableWidget.rowCount())
-		self.vibora.direccion= 1
-		self.vibora.recrea_items()
-		self.dibuja_vibora(self.vibora)
+		self.borra_vibora(vibora)
+		vibora.actualiza_coords(1, self.tableWidget.columnCount(), self.tableWidget.rowCount())
+		self.actualiza_coords_lista_vib()
+		vibora.direccion= 1
+		vibora.recrea_items()
+		self.dibuja_vibora(vibora)
 	def mueve_a_up(self, vibora):
-		self.borra_vibora(self.vibora)
-		self.vibora.actualiza_coords(0, self.tableWidget.columnCount(), self.tableWidget.rowCount())
-		self.vibora.direccion= 0
-		self.vibora.recrea_items()
-		self.dibuja_vibora(self.vibora)
+		self.borra_vibora(vibora)
+		vibora.actualiza_coords(0, self.tableWidget.columnCount(), self.tableWidget.rowCount())
+		self.actualiza_coords_lista_vib()
+		vibora.direccion= 0
+		vibora.recrea_items()
+		self.dibuja_vibora(vibora)
 	def mueve_a_do(self, vibora):
-		self.borra_vibora(self.vibora)
-		self.vibora.actualiza_coords(2, self.tableWidget.columnCount(), self.tableWidget.rowCount())
-		self.vibora.direccion= 2
-		self.vibora.recrea_items()
-		self.dibuja_vibora(self.vibora)
-
-	#Overwrite de el método keyPressEvent para detectar cuando movemos a nuestra serpiente.
-	def keyPressEvent(self, event):
-		if event.key() == QtCore.Qt.Key_Left and self.dire != 1: #Si se movió a la izq.
-			self.dire= 3
-		elif event.key() == QtCore.Qt.Key_Right and self.dire != 3: #Si se movió a la derecha.
-			self.dire= 1
-		elif event.key() == QtCore.Qt.Key_Down and self.dire != 0: #Si se movió abajo.
-			self.dire = 2
-		elif event.key() == QtCore.Qt.Key_Up and self.dire != 2: #Si se movió a arriba.
-			self.dire = 0
+		self.borra_vibora(vibora)
+		vibora.actualiza_coords(2, self.tableWidget.columnCount(), self.tableWidget.rowCount())
+		self.actualiza_coords_lista_vib()
+		vibora.direccion= 2
+		vibora.recrea_items()
+		self.dibuja_vibora(vibora)
 
 	#Método que se manda a llamar cada vez que se actualiza el juego, viendo en que dirección se tiene que mover la víbora y mandando a llamar al método correspondiente..
 	def handle(self):
-		if self.dire == 0:
-			self.mueve_a_up(self.vibora)
-		elif self.dire == 3:
-			self.mueve_a_izq(self.vibora)
-		elif self.dire == 1:
-			self.mueve_a_der(self.vibora)
-		else:
-			self.mueve_a_do(self.vibora)
-		if not self.esta_viva(self.vibora):
-			self.termina_juego(self.vibora)
-			self.pushButton_3.hide()
+		for vibora in self.viboras_ingame:
+			if vibora.direccion == 0:
+				self.mueve_a_up(vibora)
+			elif vibora.direccion == 3:
+				self.mueve_a_izq(vibora)
+			elif vibora.direccion == 1:
+				self.mueve_a_der(vibora)
+			else:
+				self.mueve_a_do(vibora)
+			if not self.esta_viva(vibora):
+				self.vibora_ha_perdido(vibora)
 
 	#Método que se encarga de buscar a una víbora por su ID, la regresa si esta está, sino, regresa None.
 	def dame_vibora_por_id(self, idd):
-		for x in viboras_ingame:
+		for x in self.viboras_ingame:
 			if x.id == idd:
 				return x
+
+	#Método que actualiza las coordenadas de todas las serpientes que se encuentran en el servidor.
+	def actualiza_coords_lista_vib(self):
+		i= 0
+		for vib in self.lista_viboras:
+			vib["camino"] = self.viboras_ingame[i].coordenadas
+			i+=1
 
 	#Método que inicia un servidor, con sus funciones correspondientes.
 	def inicia_servidor(self):
@@ -169,6 +180,7 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		self.timer_server= QTimer(self)
 		self.timer_server.timeout.connect(self.escucha_cliente)
 		self.timer_server.start(100)
+		self.pushButton.hide()
 
 	#Función que se encarga de escuchar y trabajar peticiones que le lleguen al servidor.
 	def escucha_cliente(self):
@@ -189,6 +201,14 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 			if idd == x["id"]:
 				vib= self.dame_vibora_por_id(idd)
 				vib.direccion = dir
+				break
+
+	def termina_partida(self):
+		self.tableWidget.clear()
+		self.lista_viboras.clear()
+		self.viboras_ingame.clear()
+		self.pushButton_3.hide()
+		self.pushButton_2.setText("INICIAR OTRA PARTIDA")
 
 	#Método que se encarga de regresar información importante sobre el juego, las víboras que contiene, tamaño del TableWidget, etc.
 	def estado_del_juego(self):
@@ -207,6 +227,7 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		QtGui.QMainWindow.__init__(self, parent)
 		self.setupUi(self)
 		self.pushButton_3.hide()
+		self.dire= 2
 		#acá hacemos que las celdas se adapten al tamaño de la TableWidget.
 		self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.Stretch)
 		self.tableWidget.verticalHeader().setResizeMode(QHeaderView.Stretch)
@@ -217,12 +238,11 @@ class Servidor(QtGui.QMainWindow, servidor_ui):
 		self.doubleSpinBox.valueChanged.connect(self.modifica_timeout)
 		self.pushButton.clicked.connect(self.inicia_servidor)
 		self.pushButton_2.clicked.connect(self.empieza_juego)
-		self.pushButton_3.clicked.connect(self.termina_juego)
+		self.pushButton_3.clicked.connect(self.termina_partida)
 		self.label_9.hide()
 		self.lista_viboras= []
 		self.viboras_ingame= []
 		self.servidor= None
-		self.tableWidget.keyPressEvent= self.keyPressEvent
 
 #Clase que representa a una Víbora, de nuestro juego de Snake.
 class Vibora():
@@ -234,7 +254,7 @@ class Vibora():
 	cuerpo2= QTableWidgetItem()
 	cuerpo3= QTableWidgetItem()
 	cola= QTableWidgetItem()
-	direccion= 0
+	direccion= 2
 	
 	#Constructor de una Víbora.
 	def __init__(self, idd, color, coordenadas, direccion):
